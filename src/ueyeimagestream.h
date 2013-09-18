@@ -14,7 +14,7 @@
 
 class UEyeImageStream : public osg::ImageStream {
 public:
-	UEyeImageStream();
+	UEyeImageStream(bool vSyncEnabled=true);
 	~UEyeImageStream();
 	
 	bool openCamera(unsigned long id=0);
@@ -31,6 +31,7 @@ private:
 	bool m_init;
 	bool m_memoryAllocated;
 	bool m_cameraStarted;
+	bool m_vSyncEnabled;
 	int m_sensorSizeX;
 	int m_sensorSizeY;
 	int m_bitsPerPixel;

@@ -7,7 +7,10 @@
 #include "ueyeimagestream.h"
 #include <iostream>
 
-UEyeImageStream::UEyeImageStream() : m_init(false), m_cameraStarted(false), m_memoryAllocated(false)
+UEyeImageStream::UEyeImageStream(bool vSyncEnabled) : m_init(false), 
+	m_memoryAllocated(false), 
+	m_cameraStarted(false), 
+	m_vSyncEnabled(vSyncEnabled)
 {
 }
 
@@ -21,18 +24,16 @@ UEyeImageStream::~UEyeImageStream() {
 }
 
 bool UEyeImageStream::openCamera(unsigned long id) {
-	OPENGL_DISPLAY display;
-
 	int numerOfAvailableCameras;
 
 	if( is_GetNumberOfCameras( &numerOfAvailableCameras ) == IS_SUCCESS) {
 		osg::notify(osg::DEBUG_INFO) << "Number of cameras found: " << numerOfAvailableCameras << std::endl;
 		// If higher camera requested then available
-		if (id > numerOfAvailableCameras) return false;
+		if (id > unsigned long(numerOfAvailableCameras)) return false;
 	}
 
 	// If cameraid is zero use first available camera else use camera by id.
-	m_cameraId = (id > 0) ? (unsigned long) id | IS_USE_DEVICE_ID : id;
+	m_cameraId = (id > unsigned long(0)) ? (unsigned long) id | IS_USE_DEVICE_ID : id;
 
 	// Try to init camera
 	if(is_InitCamera (&m_cameraId, NULL) == IS_SUCCESS)
@@ -83,7 +84,14 @@ bool UEyeImageStream::openCamera(unsigned long id) {
 		}
 
 		// Start image capture
-		is_CaptureVideo(m_cameraId, IS_DONT_WAIT);
+		if (m_vSyncEnabled) {
+			// Acquire image from camera
+			is_FreezeVideo(m_cameraId, IS_DONT_WAIT);
+		} else {
+			// Live capture, i.e. connect memory to live video stream, but no vertical sync
+			is_CaptureVideo(m_cameraId, IS_DONT_WAIT);
+		}
+		
 		m_cameraStarted = true;
 
 		// Set image
@@ -97,7 +105,12 @@ bool UEyeImageStream::openCamera(unsigned long id) {
 }
 
 void UEyeImageStream::update(osg::NodeVisitor* /*nv*/){
+	
 	if (m_init) {
+		if (m_vSyncEnabled) {
+			// Acquire image from camera
+			is_FreezeVideo(m_cameraId, IS_DONT_WAIT);
+		}
 		this->setImage(m_sensorSizeX, m_sensorSizeY, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, (BYTE*)(m_imageMemory), osg::Image::NO_DELETE,1);  
 	}
 }

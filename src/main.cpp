@@ -47,7 +47,7 @@ int main( int argc, char** argv )
 	
 	// Create uEyeImageStream
 	osg::ref_ptr<UEyeImageStream> uEyeImageStream = new UEyeImageStream();
-	uEyeImageStream->openCamera(2);
+	uEyeImageStream->openCamera(1);
 	texture->setImage(uEyeImageStream);
 
 	// Create viewer
