@@ -11,10 +11,22 @@ OPTION(CMAKE_USE_RELATIVE_PATHS "If true, cmake will use relative paths in makef
 
 IF (WIN32)
 	# Where to find OSG directory
+	SET(OSG_DIR $ENV{OSG_DIR} CACHE PATH "Path where to find the OpenSceneGraph")
+	IF(NOT OSG_DIR)
+		MESSAGE(FATAL_ERROR "Error: OpenSceneGraph not found.")
+	ENDIF(NOT OSG_DIR)
+	
+	# Where to find OSG 3rd party directory
 	SET(OSG_THIRD_PARTY_DIR CACHE PATH "Path where to find the osg third party dependencies")
 	IF(NOT OSG_THIRD_PARTY_DIR)
 		MESSAGE(FATAL_ERROR "Error: OpenSceneGraph 3rd Party Directory not found.")
 	ENDIF(NOT OSG_THIRD_PARTY_DIR)
+	
+	# Where to find OSG 3rd party directory
+	SET(UEYE_SDK_ROOT_DIR CACHE PATH "Path where to find the UEye SDK Develop")
+	IF(NOT UEYE_SDK_ROOT_DIR)
+		MESSAGE(FATAL_ERROR "Error: UEye SDK Develop Directory not found.")
+	ENDIF(NOT UEYE_SDK_ROOT_DIR)
 ENDIF(WIN32)
 
 #Solution
