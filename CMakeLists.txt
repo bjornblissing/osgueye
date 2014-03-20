@@ -9,6 +9,14 @@ SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # Show relative paths options
 OPTION(CMAKE_USE_RELATIVE_PATHS "If true, cmake will use relative paths in makefiles and projects." ON)
 
+IF(CMAKE_CONFIGURATION_TYPES)
+   SET(CMAKE_CONFIGURATION_TYPES Debug Release)
+   set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING
+     "Reset the configurations to what we need"
+     FORCE)
+ENDIF()
+
+
 IF (WIN32)
 	# Where to find OSG directory
 	SET(OSG_DIR $ENV{OSG_DIR} CACHE PATH "Path where to find the OpenSceneGraph")
