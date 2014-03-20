@@ -25,7 +25,7 @@ SET(TARGET_H
 # Create executable
 #####################################################################
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4510 /wd4610")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4351 /wd4510 /wd4610")
 ADD_LIBRARY(${LIB_TARGETNAME} STATIC ${LIB_SRC} ${LIB_H})
 
 ADD_EXECUTABLE(${TARGET_TARGETNAME} ${TARGET_SRC} ${TARGET_H})
