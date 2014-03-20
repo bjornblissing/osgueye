@@ -1,20 +1,32 @@
 # Target name
-SET(TARGET_TARGETNAME OsgUEye)
+SET(LIB_TARGETNAME OsgUEyeLib)
+SET(TARGET_TARGETNAME OsgUEyeExample)
 
 # Target source files
-SET(TARGET_SRC
-	main.cpp
+SET(LIB_SRC
 	ueyeimagestream.cpp
 )
 
 # Target headerfiles
-SET(TARGET_H
+SET(LIB_H
 	ueyeimagestream.h
+)
+
+# Target source files
+SET(TARGET_SRC
+	main.cpp
+)
+
+# Target headerfiles
+SET(TARGET_H
 )
 
 #####################################################################
 # Create executable
 #####################################################################
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4510 /wd4610")
+ADD_LIBRARY(${LIB_TARGETNAME} STATIC ${LIB_SRC} ${LIB_H})
 
 ADD_EXECUTABLE(${TARGET_TARGETNAME} ${TARGET_SRC} ${TARGET_H})
 
@@ -30,6 +42,9 @@ TARGET_LINK_LIBRARIES(${TARGET_TARGETNAME}  ${OPENSCENEGRAPH_LIBRARIES} )
 
 # Link to uEye libs
 TARGET_LINK_LIBRARIES(${TARGET_TARGETNAME}  ${UEYE_SDK_LIBRARIES} )
+
+# Link to ueye lib
+TARGET_LINK_LIBRARIES(${TARGET_TARGETNAME}  ${LIB_TARGETNAME} )
 
 ####################################################################
 # Create user file for correct environment string
