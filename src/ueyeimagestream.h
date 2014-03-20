@@ -15,35 +15,35 @@
 
 
 class UEyeImageStream : public osg::ImageStream {
-public:
-	UEyeImageStream(bool vSyncEnabled=true, size_t frameDelay=1);
-	~UEyeImageStream();
-	
-	bool openCamera(unsigned long id=0);
-	double getFrameRate() const { return m_actualFrameRate; }
-	int sensorSizeX() const { return m_sensorSizeX; }
-	int sensorSizeY() const { return m_sensorSizeY; }
-	float aspectRatio() const { return float(m_sensorSizeX)/float(m_sensorSizeY); }
+	public:
+		UEyeImageStream(bool vSyncEnabled=true, size_t frameDelay=1);
+		~UEyeImageStream();
 
-	/** ImageSequence requires a call to update(NodeVisitor*) during the update traversal so return true.*/
-	virtual bool requiresUpdateCall() const { return true; }
-	virtual void update(osg::NodeVisitor* nv);
+		bool openCamera(unsigned long id=0);
+		double getFrameRate() const { return m_actualFrameRate; }
+		int sensorSizeX() const { return m_sensorSizeX; }
+		int sensorSizeY() const { return m_sensorSizeY; }
+		float aspectRatio() const { return float(m_sensorSizeX)/float(m_sensorSizeY); }
 
-private:
-	bool m_init;
-	bool m_memoryAllocated;
-	bool m_cameraStarted;
-	bool m_vSyncEnabled;
-	int m_sensorSizeX;
-	int m_sensorSizeY;
-	int m_bitsPerPixel;
-	unsigned long m_cameraId;
-	double m_actualFrameRate;
-	int		m_sequenceMemoryId[MAX_SEQ_BUFFERS];	// camera memory - buffer ID
-	char*	m_sequenceMememyPointer[MAX_SEQ_BUFFERS];	// camera memory - pointer to buffer
-	int		m_sequenceNumberId[MAX_SEQ_BUFFERS];	// varibale to hold the number of the sequence buffer Id
-	size_t m_numberOfFrames;
-	size_t m_oldestFrame;
+		/** ImageSequence requires a call to update(NodeVisitor*) during the update traversal so return true.*/
+		virtual bool requiresUpdateCall() const { return true; }
+		virtual void update(osg::NodeVisitor* nv);
+
+	private:
+		bool m_init;
+		bool m_memoryAllocated;
+		bool m_cameraStarted;
+		bool m_vSyncEnabled;
+		int m_sensorSizeX;
+		int m_sensorSizeY;
+		int m_bitsPerPixel;
+		unsigned long m_cameraId;
+		double m_actualFrameRate;
+		int		m_sequenceMemoryId[MAX_SEQ_BUFFERS];	// camera memory - buffer ID
+		char*	m_sequenceMememyPointer[MAX_SEQ_BUFFERS];	// camera memory - pointer to buffer
+		int		m_sequenceNumberId[MAX_SEQ_BUFFERS];	// varibale to hold the number of the sequence buffer Id
+		size_t m_numberOfFrames;
+		size_t m_oldestFrame;
 };
 
-#endif 
+#endif
