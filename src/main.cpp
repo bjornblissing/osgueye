@@ -21,9 +21,9 @@ osg::Geode* createHUDQuad( float width, float height)
 		osg::Vec3(width,0.0f,0.0f),
 		osg::Vec3(0.0f,0.0f,height),
 		0.0f,
-		0.0f,
 		1.0f,
-		1.0f);
+		1.0f,
+		0.0f);
 	osg::ref_ptr<osg::Geode> quad = new osg::Geode;
 	quad->addDrawable( geom );
 	int values = osg::StateAttribute::OFF | osg::StateAttribute::PROTECTED;
@@ -46,7 +46,7 @@ int main( int argc, char** argv )
 	texture->setResizeNonPowerOfTwoHint(false);
 	
 	// Create uEyeImageStream
-	osg::ref_ptr<UEyeImageStream> uEyeImageStream = new UEyeImageStream();
+	osg::ref_ptr<UEyeImageStream> uEyeImageStream = new UEyeImageStream(false, 30);
 	uEyeImageStream->openCamera(1);
 	texture->setImage(uEyeImageStream);
 
