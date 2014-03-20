@@ -10,16 +10,24 @@
 UEyeImageStream::UEyeImageStream(bool vSyncEnabled, size_t frameDelay) : m_init(false), 
 	m_memoryAllocated(false), 
 	m_cameraStarted(false), 
+	m_sensorSizeX(0),
+	m_sensorSizeY(0),
+	m_bitsPerPixel(0),
+	m_cameraId(0),
+	m_actualFrameRate(0.0),
+	m_sequenceMemoryId(),
+	m_sequenceMememyPointer(),
+	m_sequenceNumberId(),
 	m_vSyncEnabled(vSyncEnabled),
-	m_numberOfFrames(frameDelay)
+	m_numberOfFrames(frameDelay),
+	m_oldestFrame(0)
 {
 }
 
 UEyeImageStream::~UEyeImageStream() {
 	if (m_memoryAllocated) {
 		// free buffers
-		size_t numberOfFrames = 5;
-		for (size_t i = 0; i < numberOfFrames; ++i) {
+		for (size_t i = 0; i < m_numberOfFrames; ++i) {
 			is_FreeImageMem( m_cameraId, m_sequenceMememyPointer[i], m_sequenceMemoryId[i] );
 		}        
   	}
@@ -78,7 +86,6 @@ bool UEyeImageStream::openCamera(unsigned long id) {
 		}
 
 		// Connect memory to sensor image
-		is_SetImageMem (m_cameraId, m_imageMemory, m_memoryId); 
 		m_memoryAllocated = true;
 
 		// Set color mode
@@ -106,7 +113,10 @@ bool UEyeImageStream::openCamera(unsigned long id) {
 		if(is_SetExternalTrigger (m_cameraId,IS_SET_TRIGGER_SOFTWARE) != IS_SUCCESS)
 		{
 			osg::notify(osg::WARN) << "Error: Failed to set camera in freerun mode!" << std::endl;
-			is_FreeImageMem (m_cameraId, m_imageMemory, m_memoryId); 
+			// free buffers
+			for (size_t i = 0; i < m_numberOfFrames; ++i) {
+				is_FreeImageMem( m_cameraId, m_sequenceMememyPointer[i], m_sequenceMemoryId[i] );
+			}    
 			is_ExitCamera (m_cameraId); 
 			exit(EXIT_FAILURE);
 			return false;
@@ -124,7 +134,7 @@ bool UEyeImageStream::openCamera(unsigned long id) {
 		m_cameraStarted = true;
 
 		// Set image
-		this->setImage(m_sensorSizeX, m_sensorSizeY, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, (BYTE*)(m_sequenceMememyPointer[0]), osg::Image::NO_DELETE,1);  
+		this->setImage(m_sensorSizeX, m_sensorSizeY, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, (BYTE*)(m_sequenceMememyPointer[m_oldestFrame]), osg::Image::NO_DELETE,1);  
 
 	} else {
 		return false;
@@ -141,19 +151,18 @@ void UEyeImageStream::update(osg::NodeVisitor* /*nv*/){
 			is_FreezeVideo(m_cameraId, IS_DONT_WAIT);
 		}
 
-		INT nNum;
-		char *pcMem, *pcMemLast;
-		is_GetActSeqBuf(m_cameraId, &nNum, &pcMem, &pcMemLast);
+		int currentImageNumber;
+		char *imageMemory, *imageMemoryLast;
+		is_GetActSeqBuf(m_cameraId, &currentImageNumber, &imageMemory, &imageMemoryLast);
 		size_t i;
-		//osg::notify(osg::ALWAYS) << "Frame: " << std::endl;
 		for(i=0 ; i<m_numberOfFrames ; i++) {
-			if( pcMem == m_sequenceMememyPointer[i] ) {
-				//osg::notify(osg::ALWAYS) << "Current memory ID: " << i << std::endl;
+			if(imageMemory == m_sequenceMememyPointer[i] ) {
 				break;
 			}
 		}
 		
-		int mi = (i + 1) % m_numberOfFrames;
-		this->setImage(m_sensorSizeX, m_sensorSizeY, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, (BYTE*)(m_sequenceMememyPointer[mi]), osg::Image::NO_DELETE,1);  
+		m_oldestFrame = (i + 1) % m_numberOfFrames;
+
+		this->setImage(m_sensorSizeX, m_sensorSizeY, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, (BYTE*)(m_sequenceMememyPointer[m_oldestFrame]), osg::Image::NO_DELETE,1);  
 	}
 }

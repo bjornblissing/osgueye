@@ -37,15 +37,13 @@ private:
 	int m_sensorSizeX;
 	int m_sensorSizeY;
 	int m_bitsPerPixel;
-	int m_memoryId;
 	unsigned long m_cameraId;
 	double m_actualFrameRate;
-	char* m_imageMemory;
 	int		m_sequenceMemoryId[MAX_SEQ_BUFFERS];	// camera memory - buffer ID
 	char*	m_sequenceMememyPointer[MAX_SEQ_BUFFERS];	// camera memory - pointer to buffer
 	int		m_sequenceNumberId[MAX_SEQ_BUFFERS];	// varibale to hold the number of the sequence buffer Id
 	size_t m_numberOfFrames;
-
+	size_t m_oldestFrame;
 };
 
 #endif 
