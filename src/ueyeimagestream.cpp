@@ -74,6 +74,29 @@ bool UEyeImageStream::openCamera(unsigned long id) {
 		// Set color mode
 		is_SetColorMode(m_cameraId, IS_CM_RGB8_PACKED);
 
+		double dblVal = 1.0;
+		UEYE_AUTO_INFO autoInfo;
+        if (is_GetAutoInfo(m_cameraId, &autoInfo) == IS_SUCCESS)
+        {
+			// Sensor Whitebalance is supported
+            if (autoInfo.AutoAbility & AC_SENSOR_WB)
+			{
+				osg::notify(osg::DEBUG_INFO) << "Sensor whitebalance supported" << std::endl;
+				is_SetAutoParameter(m_cameraId, IS_SET_ENABLE_AUTO_SENSOR_WHITEBALANCE, &dblVal, NULL);
+			}
+			// Sensor Whitebalance is not supported
+			else
+			{
+				if (autoInfo.AutoAbility & AC_WHITEBAL)
+				{
+					osg::notify(osg::DEBUG_INFO) << "Sensor whitebalance supported in software" << std::endl;
+					// Try to activate software whitebalance
+					is_SetAutoParameter(m_cameraId, IS_SET_ENABLE_AUTO_WHITEBALANCE, &dblVal, NULL);
+				}
+			}
+		} 
+
+
 		// Check if camera can be set to free run, aka run at full speed
 		if(is_SetExternalTrigger (m_cameraId,IS_SET_TRIGGER_SOFTWARE) != IS_SUCCESS)
 		{
