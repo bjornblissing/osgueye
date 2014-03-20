@@ -11,10 +11,12 @@
 #include <osg/ImageStream>
 #include <uEye.h>
 
+#define MAX_SEQ_BUFFERS 32767
+
 
 class UEyeImageStream : public osg::ImageStream {
 public:
-	UEyeImageStream(bool vSyncEnabled=true);
+	UEyeImageStream(bool vSyncEnabled=true, size_t frameDelay=1);
 	~UEyeImageStream();
 	
 	bool openCamera(unsigned long id=0);
@@ -39,6 +41,11 @@ private:
 	unsigned long m_cameraId;
 	double m_actualFrameRate;
 	char* m_imageMemory;
+	int		m_sequenceMemoryId[MAX_SEQ_BUFFERS];	// camera memory - buffer ID
+	char*	m_sequenceMememyPointer[MAX_SEQ_BUFFERS];	// camera memory - pointer to buffer
+	int		m_sequenceNumberId[MAX_SEQ_BUFFERS];	// varibale to hold the number of the sequence buffer Id
+	size_t m_numberOfFrames;
+
 };
 
 #endif 

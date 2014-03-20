@@ -7,17 +7,23 @@
 #include "ueyeimagestream.h"
 #include <iostream>
 
-UEyeImageStream::UEyeImageStream(bool vSyncEnabled) : m_init(false), 
+UEyeImageStream::UEyeImageStream(bool vSyncEnabled, size_t frameDelay) : m_init(false), 
 	m_memoryAllocated(false), 
 	m_cameraStarted(false), 
-	m_vSyncEnabled(vSyncEnabled)
+	m_vSyncEnabled(vSyncEnabled),
+	m_numberOfFrames(frameDelay)
 {
 }
 
 UEyeImageStream::~UEyeImageStream() {
 	if (m_memoryAllocated) {
-		is_FreeImageMem (m_cameraId, m_imageMemory, m_memoryId); 
-	}
+		// free buffers
+		size_t numberOfFrames = 5;
+		for (size_t i = 0; i < numberOfFrames; ++i) {
+			is_FreeImageMem( m_cameraId, m_sequenceMememyPointer[i], m_sequenceMemoryId[i] );
+		}        
+  	}
+	
 	if (m_cameraStarted) {
 		is_ExitCamera (m_cameraId);
 	}
@@ -65,7 +71,11 @@ bool UEyeImageStream::openCamera(unsigned long id) {
 		
 		// Allocate memory for image
 		m_bitsPerPixel = 24;
-		is_AllocImageMem (m_cameraId, m_sensorSizeX, m_sensorSizeY, m_bitsPerPixel,&m_imageMemory, &m_memoryId); 
+		
+		for (size_t i = 0; i < m_numberOfFrames; ++i) {
+			is_AllocImageMem (m_cameraId, m_sensorSizeX, m_sensorSizeY, m_bitsPerPixel,&m_sequenceMememyPointer[i], &m_sequenceMemoryId[i]);
+			is_AddToSequence(m_cameraId, m_sequenceMememyPointer[i], m_sequenceMemoryId[i] );
+		}
 
 		// Connect memory to sensor image
 		is_SetImageMem (m_cameraId, m_imageMemory, m_memoryId); 
@@ -76,19 +86,15 @@ bool UEyeImageStream::openCamera(unsigned long id) {
 
 		double dblVal = 1.0;
 		UEYE_AUTO_INFO autoInfo;
-        if (is_GetAutoInfo(m_cameraId, &autoInfo) == IS_SUCCESS)
-        {
+        if (is_GetAutoInfo(m_cameraId, &autoInfo) == IS_SUCCESS) {
 			// Sensor Whitebalance is supported
-            if (autoInfo.AutoAbility & AC_SENSOR_WB)
-			{
+            if (autoInfo.AutoAbility & AC_SENSOR_WB) {
 				osg::notify(osg::DEBUG_INFO) << "Sensor whitebalance supported" << std::endl;
 				is_SetAutoParameter(m_cameraId, IS_SET_ENABLE_AUTO_SENSOR_WHITEBALANCE, &dblVal, NULL);
 			}
 			// Sensor Whitebalance is not supported
-			else
-			{
-				if (autoInfo.AutoAbility & AC_WHITEBAL)
-				{
+			else {
+				if (autoInfo.AutoAbility & AC_WHITEBAL) {
 					osg::notify(osg::DEBUG_INFO) << "Sensor whitebalance supported in software" << std::endl;
 					// Try to activate software whitebalance
 					is_SetAutoParameter(m_cameraId, IS_SET_ENABLE_AUTO_WHITEBALANCE, &dblVal, NULL);
@@ -96,10 +102,10 @@ bool UEyeImageStream::openCamera(unsigned long id) {
 			}
 		} 
 
-
 		// Check if camera can be set to free run, aka run at full speed
 		if(is_SetExternalTrigger (m_cameraId,IS_SET_TRIGGER_SOFTWARE) != IS_SUCCESS)
 		{
+			osg::notify(osg::WARN) << "Error: Failed to set camera in freerun mode!" << std::endl;
 			is_FreeImageMem (m_cameraId, m_imageMemory, m_memoryId); 
 			is_ExitCamera (m_cameraId); 
 			exit(EXIT_FAILURE);
@@ -118,7 +124,7 @@ bool UEyeImageStream::openCamera(unsigned long id) {
 		m_cameraStarted = true;
 
 		// Set image
-		this->setImage(m_sensorSizeX, m_sensorSizeY, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, (BYTE*)(m_imageMemory), osg::Image::NO_DELETE,1); 
+		this->setImage(m_sensorSizeX, m_sensorSizeY, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, (BYTE*)(m_sequenceMememyPointer[0]), osg::Image::NO_DELETE,1);  
 
 	} else {
 		return false;
@@ -134,6 +140,20 @@ void UEyeImageStream::update(osg::NodeVisitor* /*nv*/){
 			// Acquire image from camera
 			is_FreezeVideo(m_cameraId, IS_DONT_WAIT);
 		}
-		this->setImage(m_sensorSizeX, m_sensorSizeY, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, (BYTE*)(m_imageMemory), osg::Image::NO_DELETE,1);  
+
+		INT nNum;
+		char *pcMem, *pcMemLast;
+		is_GetActSeqBuf(m_cameraId, &nNum, &pcMem, &pcMemLast);
+		size_t i;
+		//osg::notify(osg::ALWAYS) << "Frame: " << std::endl;
+		for(i=0 ; i<m_numberOfFrames ; i++) {
+			if( pcMem == m_sequenceMememyPointer[i] ) {
+				//osg::notify(osg::ALWAYS) << "Current memory ID: " << i << std::endl;
+				break;
+			}
+		}
+		
+		int mi = (i + 1) % m_numberOfFrames;
+		this->setImage(m_sensorSizeX, m_sensorSizeY, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, (BYTE*)(m_sequenceMememyPointer[mi]), osg::Image::NO_DELETE,1);  
 	}
 }
