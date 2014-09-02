@@ -38,20 +38,61 @@ UEyeImageStream::~UEyeImageStream()
 	}
 }
 
-bool UEyeImageStream::openCamera(unsigned long id)
+bool UEyeImageStream::openCamera(const std::string& name) 
 {
-	int numerOfAvailableCameras;
-
-	if ( is_GetNumberOfCameras( &numerOfAvailableCameras ) == IS_SUCCESS) {
-		osg::notify(osg::DEBUG_INFO) << "Number of cameras found: " << numerOfAvailableCameras << std::endl;
-
-		// If higher camera requested then available
-		if (id > unsigned long(numerOfAvailableCameras)) { return false; }
+	static const int eepromSize = 64;
+	// Get number of cameras
+	INT nNumCam;
+	if( is_GetNumberOfCameras( &nNumCam ) == IS_SUCCESS) {
+		// Must have at least one camera connected
+		if( nNumCam > 0 ) {
+			// Create new list with suitable size
+			UEYE_CAMERA_LIST* cameraList;
+			cameraList = (UEYE_CAMERA_LIST*) new BYTE [sizeof (DWORD) + nNumCam * sizeof (UEYE_CAMERA_INFO)];
+			cameraList->dwCount = nNumCam;
+	
+			if (is_GetCameraList( cameraList ) == IS_SUCCESS) {
+				// Loop over available cameras
+				for (DWORD listId = 0; listId < cameraList->dwCount; ++listId) {
+					UEYE_CAMERA_INFO cameraInfo = cameraList->uci[listId];
+					osg::notify(osg::DEBUG_INFO) << "CameraId: " << cameraInfo.dwCameraID << std::endl;
+					osg::notify(osg::DEBUG_INFO) << "DeviceId: " << cameraInfo.dwDeviceID << std::endl;
+					osg::notify(osg::DEBUG_INFO) << "Model   : " << cameraInfo.Model << std::endl;
+					osg::notify(osg::DEBUG_INFO) << "Serial  : " << cameraInfo.SerNo << std::endl;
+					// Check if camera is not being used
+					if (cameraInfo.dwInUse == 0) {
+						HIDS cameraHandle = cameraInfo.dwDeviceID | IS_USE_DEVICE_ID;
+						int statusCode = is_InitCamera (&cameraHandle, NULL);
+						if (statusCode == IS_SUCCESS) {
+							// Read EEPROM string
+							char pcString[eepromSize];
+							is_ReadEEPROM(cameraHandle, 0, pcString, eepromSize);
+							std::string eepromName(pcString);
+							// Disconnect camera
+							is_ExitCamera (cameraHandle);
+							// Check if name is correct
+							if (name.compare(eepromName) == 0) {
+								delete[] cameraList;
+								return openCamera(cameraHandle);
+							}
+						}
+					}
+				}
+			}
+			osg::notify(osg::WARN) << "Warning: No camera found with name: " << name << std::endl;
+			delete[] cameraList;
+			return false;
+		}
+		osg::notify(osg::WARN) << "Warning: No cameras connected"<< std::endl;
+		return false;
 	}
+	osg::notify(osg::WARN) << "Warning: Unable to enumerate cameras" << std::endl;
+	return false;
+}
 
-	// If cameraid is zero use first available camera else use camera by id.
-	m_cameraId = (id > unsigned long(0)) ? (unsigned long) id | IS_USE_DEVICE_ID : id;
-
+bool UEyeImageStream::openCamera(unsigned long cameraId)
+{
+	m_cameraId = cameraId;
 	// Try to init camera
 	if (is_InitCamera (&m_cameraId, NULL) == IS_SUCCESS) {
 		SENSORINFO sInfo;
@@ -67,12 +108,25 @@ bool UEyeImageStream::openCamera(unsigned long id)
 		if (nRet == IS_SUCCESS)	{
 			//unsigned int minimumPixelClock = nRange[0];
 			unsigned int maximumPixelClock = range[1];
+			osg::notify(osg::DEBUG_INFO) << "Pixel clock: " << maximumPixelClock << std::endl;
 			//unsigned int incrementPixelClock = nRange[2];
-			is_PixelClock(m_cameraId, IS_PIXELCLOCK_CMD_SET, (void*)&maximumPixelClock, sizeof(maximumPixelClock));
+			nRet = is_PixelClock(m_cameraId, IS_PIXELCLOCK_CMD_SET, (void*)&maximumPixelClock, sizeof(maximumPixelClock));
+			if (nRet != IS_SUCCESS) {
+				osg::notify(osg::WARN) << "WARNING! Failed to set pixel clock to: " << maximumPixelClock <<  std::endl;
+			}
 			// Set desired frame rate
 			int desiredFrameRate = 60;
-			is_SetFrameRate(m_cameraId, desiredFrameRate, &m_actualFrameRate);
-			osg::notify(osg::DEBUG_INFO) << "Actual frame rate reported: " << m_actualFrameRate << std::endl;
+			nRet = is_SetFrameRate(m_cameraId, desiredFrameRate, &m_actualFrameRate);
+			if (nRet != IS_SUCCESS) {
+				osg::notify(osg::WARN) << "WARNING! Failed to set frame rate to: " << desiredFrameRate <<  std::endl;
+				osg::notify(osg::WARN) << "\tActual frame rate: \t" << m_actualFrameRate << std::endl;
+			}
+			
+			if (osg::round(m_actualFrameRate) != desiredFrameRate) {
+				osg::notify(osg::WARN) << "WARNING! Could not set correct frame rate!"<< std::endl;
+				osg::notify(osg::WARN) << "\tDesired frame rate:\t" << desiredFrameRate << std::endl;
+				osg::notify(osg::WARN) << "\tActual frame rate: \t" << m_actualFrameRate << std::endl;
+			}
 		}
 
 		// Allocate memory for image
@@ -87,28 +141,36 @@ bool UEyeImageStream::openCamera(unsigned long id)
 		m_memoryAllocated = true;
 		// Set color mode
 		is_SetColorMode(m_cameraId, IS_CM_RGB8_PACKED);
-		double dblVal = 1.0;
+		double disableValue = 0.0;
 		UEYE_AUTO_INFO autoInfo;
 
 		if (is_GetAutoInfo(m_cameraId, &autoInfo) == IS_SUCCESS) {
-			// Sensor Whitebalance is supported
+			// Sensor white balance is supported
 			if (autoInfo.AutoAbility & AC_SENSOR_WB) {
-				osg::notify(osg::DEBUG_INFO) << "Sensor whitebalance supported" << std::endl;
-				is_SetAutoParameter(m_cameraId, IS_SET_ENABLE_AUTO_SENSOR_WHITEBALANCE, &dblVal, NULL);
+				osg::notify(osg::DEBUG_INFO) << "Sensor white balance supported" << std::endl;
+				if (is_SetAutoParameter(m_cameraId, IS_SET_ENABLE_AUTO_SENSOR_WHITEBALANCE, &disableValue, NULL) == IS_SUCCESS) {
+					osg::notify(osg::DEBUG_INFO) << "Sensor auto white balance disabled" << std::endl;
+				} else {
+					osg::notify(osg::DEBUG_INFO) << "Sensor auto white balance could not be disabled" << std::endl;
+				}
 			}
-			// Sensor Whitebalance is not supported
+			// Sensor white balance is not supported
 			else {
 				if (autoInfo.AutoAbility & AC_WHITEBAL) {
-					osg::notify(osg::DEBUG_INFO) << "Sensor whitebalance supported in software" << std::endl;
-					// Try to activate software whitebalance
-					is_SetAutoParameter(m_cameraId, IS_SET_ENABLE_AUTO_WHITEBALANCE, &dblVal, NULL);
+					osg::notify(osg::DEBUG_INFO) << "Sensor white balance supported in software" << std::endl;
+					// Try to disable software white balance
+					if (is_SetAutoParameter(m_cameraId, IS_SET_ENABLE_AUTO_WHITEBALANCE, &disableValue, NULL) == IS_SUCCESS) {
+						osg::notify(osg::DEBUG_INFO) << "Software auto white balance disabled" << std::endl;
+					} else {
+						osg::notify(osg::DEBUG_INFO) << "Software auto white balance could not be disabled" << std::endl;
+					}
 				}
 			}
 		}
 
 		// Check if camera can be set to free run, aka run at full speed
 		if (is_SetExternalTrigger (m_cameraId,IS_SET_TRIGGER_SOFTWARE) != IS_SUCCESS) {
-			osg::notify(osg::WARN) << "Error: Failed to set camera in freerun mode!" << std::endl;
+			osg::notify(osg::WARN) << "Error: Failed to set camera in free run mode!" << std::endl;
 
 			// free buffers
 			for (size_t i = 0; i < m_numberOfFrames; ++i) {
@@ -116,6 +178,7 @@ bool UEyeImageStream::openCamera(unsigned long id)
 			}
 
 			is_ExitCamera (m_cameraId);
+			osg::notify(osg::WARN) << "Warning: Unable to set camera in free run mode: " << m_cameraId << std::endl;
 			exit(EXIT_FAILURE);
 			return false;
 		}
@@ -133,6 +196,7 @@ bool UEyeImageStream::openCamera(unsigned long id)
 		// Set image
 		this->setImage(m_sensorSizeX, m_sensorSizeY, 1, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, (BYTE*)(m_sequenceMememyPointer[m_oldestFrame]), osg::Image::NO_DELETE,1);
 	} else {
+		osg::notify(osg::WARN) << "Warning: Unable to init camera: " << m_cameraId << std::endl;
 		return false;
 	}
 

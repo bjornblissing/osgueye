@@ -13,13 +13,13 @@
 
 #define MAX_SEQ_BUFFERS 32767
 
-
 class UEyeImageStream : public osg::ImageStream {
 	public:
 		UEyeImageStream(bool vSyncEnabled=true, size_t frameDelay=1);
 		~UEyeImageStream();
 
-		bool openCamera(unsigned long id=0);
+		bool openCamera(const std::string& name);
+		bool openCamera(unsigned long cameraId);
 		double getFrameRate() const { return m_actualFrameRate; }
 		int sensorSizeX() const { return m_sensorSizeX; }
 		int sensorSizeY() const { return m_sensorSizeY; }
@@ -39,9 +39,9 @@ class UEyeImageStream : public osg::ImageStream {
 		int m_bitsPerPixel;
 		unsigned long m_cameraId;
 		double m_actualFrameRate;
-		int		m_sequenceMemoryId[MAX_SEQ_BUFFERS];	// camera memory - buffer ID
-		char*	m_sequenceMememyPointer[MAX_SEQ_BUFFERS];	// camera memory - pointer to buffer
-		int		m_sequenceNumberId[MAX_SEQ_BUFFERS];	// varibale to hold the number of the sequence buffer Id
+		int	   m_sequenceMemoryId[MAX_SEQ_BUFFERS];			// camera memory - buffer ID
+		char*  m_sequenceMememyPointer[MAX_SEQ_BUFFERS];	// camera memory - pointer to buffer
+		int    m_sequenceNumberId[MAX_SEQ_BUFFERS];			// variable to hold the number of the sequence buffer Id
 		size_t m_numberOfFrames;
 		size_t m_oldestFrame;
 };
