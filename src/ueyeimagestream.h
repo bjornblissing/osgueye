@@ -37,7 +37,7 @@ class UEyeImageStream : public osg::ImageStream {
 		int m_sensorSizeX;
 		int m_sensorSizeY;
 		int m_bitsPerPixel;
-		unsigned long m_cameraId;
+		HIDS m_cameraId;
 		double m_actualFrameRate;
 		int	   m_sequenceMemoryId[MAX_SEQ_BUFFERS];			// camera memory - buffer ID
 		char*  m_sequenceMememyPointer[MAX_SEQ_BUFFERS];	// camera memory - pointer to buffer

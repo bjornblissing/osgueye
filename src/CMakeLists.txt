@@ -46,6 +46,15 @@ TARGET_LINK_LIBRARIES(${TARGET_TARGETNAME}  ${UEYE_SDK_LIBRARIES} )
 # Link to ueye lib
 TARGET_LINK_LIBRARIES(${TARGET_TARGETNAME}  ${LIB_TARGETNAME} )
 
+
+ ####################################################################
+# Copy shaders if we are doing out of source builds
+#####################################################################
+IF (CMAKE_OUT_OF_SOURCE_BUILD)
+	CONFIGURE_FILE(camerarectification.vert camerarectification.vert COPYONLY)
+	CONFIGURE_FILE(camerarectification.frag camerarectification.frag COPYONLY)
+ENDIF()
+
 ####################################################################
 # Create user file for correct environment string
 #####################################################################
@@ -64,7 +73,7 @@ IF(WIN32)
 			ENDIF(EXISTS "${OSG_DIR}/bin")
 			SET(USERFILE_ENVIRONMENT_DEBUG "${USERFILE_ENVIRONMENT_DEBUG}${OSG_BIN_DIR}")
 			SET(USERFILE_ENVIRONMENT_RELEASE "${USERFILE_ENVIRONMENT_RELEASE}${OSG_BIN_DIR}")
-
+			
 			IF (OSG_THIRD_PARTY_DIR)
 				# Add third party to path
 				SET(USERFILE_ENVIRONMENT_DEBUG "${USERFILE_ENVIRONMENT_DEBUG};${OSG_THIRD_PARTY_DIR}/bin")

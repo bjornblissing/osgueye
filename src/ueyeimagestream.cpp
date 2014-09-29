@@ -90,7 +90,7 @@ bool UEyeImageStream::openCamera(const std::string& name)
 	return false;
 }
 
-bool UEyeImageStream::openCamera(unsigned long cameraId)
+bool UEyeImageStream::openCamera(HIDS cameraId)
 {
 	m_cameraId = cameraId;
 	// Try to init camera
