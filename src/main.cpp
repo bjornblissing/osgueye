@@ -14,6 +14,7 @@
 #include <osgGA/StateSetManipulator>
 
 #include "ueyeimagestream.h"
+#include "camerarectification.h"
 
 
 osg::Geode* createHUDQuad( float width, float height)
@@ -52,30 +53,13 @@ osg::Geode* createCameraPlane(unsigned long cameraId) {
 	stateSet->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
 
 	// Use camera rectification
-	osg::ref_ptr<osg::Program> cameraRectificationProgram = new osg::Program();
-	osg::ref_ptr<osg::Shader> vertexShader = new osg::Shader(osg::Shader::VERTEX);
-	vertexShader->loadShaderSourceFromFile("camerarectification.vert");
-	cameraRectificationProgram->addShader(vertexShader);
-	osg::ref_ptr<osg::Shader> fragmentShader = new osg::Shader(osg::Shader::FRAGMENT);
-	fragmentShader->loadShaderSourceFromFile("camerarectification.frag");
-	cameraRectificationProgram->addShader(fragmentShader);
-	osg::ref_ptr<osg::Uniform> opticalCenterUniform = 
-		new osg::Uniform("opticalCenter", osg::Vec2(619.876, 500.871)); // Optical center in pixel space
-	osg::ref_ptr<osg::Uniform> focalLengthUniform = 
-		new osg::Uniform("focalLength", osg::Vec2(1130.81, 1130.7)); // Focal length in pixel space
-	osg::ref_ptr<osg::Uniform> radialDistortionUniform = 
-		new osg::Uniform("radialDistortion", osg::Vec2(-0.189419, 0.228431)); // Radial distortion coefficients
-	osg::ref_ptr<osg::Uniform> tangentialDistortionUniform = 
-		new osg::Uniform("tangentialDistortion", osg::Vec2(0.000941997, 3.85398e-05)); // Tangential distortion coefficients
-	osg::ref_ptr<osg::Uniform> imageSizeUniform = 
-		new osg::Uniform("imageSize", osg::Vec2(1280.0, 1024.0)); // Used to re-project pixel space to UV-space
-
-	stateSet->addUniform(opticalCenterUniform);
-	stateSet->addUniform(focalLengthUniform);
-	stateSet->addUniform(radialDistortionUniform);
-	stateSet->addUniform(tangentialDistortionUniform);
-	stateSet->addUniform(imageSizeUniform);
-	stateSet->setAttributeAndModes( cameraRectificationProgram, osg::StateAttribute::ON );
+	osg::ref_ptr<CameraRectification> cameraRectification = new CameraRectification;
+	cameraRectification->setOpticalCenter(osg::Vec2(619.876, 500.871)); // Optical center in pixel space
+	cameraRectification->setFocalLength(osg::Vec2(1130.81, 1130.7)); // Focal length in pixel space
+	cameraRectification->setRadialDistortionCoefficients(osg::Vec2(-0.189419, 0.228431)); // Radial distortion coefficients
+	cameraRectification->setTangentialDistortionCoefficients(osg::Vec2(0.000941997, 3.85398e-05)); // Tangential distortion coefficients
+	cameraRectification->setImageSize(osg::Vec2(1280.0, 1024.0));
+	cameraRectification->applyRectification(stateSet);
 
 	return quadGeode.release();	
 }

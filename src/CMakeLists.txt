@@ -5,11 +5,13 @@ SET(TARGET_TARGETNAME OsgUEyeExample)
 # Target source files
 SET(LIB_SRC
 	ueyeimagestream.cpp
+	camerarectification.cpp
 )
 
-# Target headerfiles
+# Target header files
 SET(LIB_H
 	ueyeimagestream.h
+	camerarectification.h
 )
 
 # Target source files
@@ -45,15 +47,6 @@ TARGET_LINK_LIBRARIES(${TARGET_TARGETNAME}  ${UEYE_SDK_LIBRARIES} )
 
 # Link to ueye lib
 TARGET_LINK_LIBRARIES(${TARGET_TARGETNAME}  ${LIB_TARGETNAME} )
-
-
- ####################################################################
-# Copy shaders if we are doing out of source builds
-#####################################################################
-IF (CMAKE_OUT_OF_SOURCE_BUILD)
-	CONFIGURE_FILE(camerarectification.vert camerarectification.vert COPYONLY)
-	CONFIGURE_FILE(camerarectification.frag camerarectification.frag COPYONLY)
-ENDIF()
 
 ####################################################################
 # Create user file for correct environment string

@@ -16,7 +16,6 @@
 class UEyeImageStream : public osg::ImageStream {
 	public:
 		UEyeImageStream(bool vSyncEnabled=true, size_t frameDelay=1);
-		~UEyeImageStream();
 
 		bool openCamera(const std::string& name);
 		bool openCamera(unsigned long cameraId);
@@ -30,6 +29,8 @@ class UEyeImageStream : public osg::ImageStream {
 		virtual void update(osg::NodeVisitor* nv);
 
 	private:
+		~UEyeImageStream(); // Since we inherit from osg::Referenced we must make destructor protected
+
 		bool m_init;
 		bool m_memoryAllocated;
 		bool m_cameraStarted;
